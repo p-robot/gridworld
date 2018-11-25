@@ -313,7 +313,7 @@ class Simulation(object):
                             self.timestep, self.current_s)
                 
             # Check if next state is the terminal state.
-            if (not next_s.terminal): # != self.terminal_state):
+            if(next_s != self.terminal_state):
                 self.current_a = next_a
                 self.current_s = next_s
                 self.timestep += 1
