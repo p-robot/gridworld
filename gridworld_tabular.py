@@ -19,10 +19,146 @@ W. Probert, 2014
 """
 
 import copy, numpy as np
-import rli
-import utils
 from os.path import join
 from matplotlib import pyplot as plt
+import rli, utils
+import random
+
+
+class MCAgent(rli.Agent):
+    """
+    Class representing an agent that learns using epsilon-soft Monte Carlo control
+    
+    If no starting action is given then a random action is chosen.  
+    """
+    def __init__(self, actions, epsilon, control_switch_times = range(300001), \
+            starting_action = None, verbose = False):
+        
+        self._verbose = verbose
+        self._epsilon = epsilon
+        self._control_switch_times = control_switch_times
+        self._starting_action = starting_action
+        
+        # List all valid actions
+        self._actions = actions
+        
+        self.Q = dict()
+        self.visits = dict()
+        self.sa_seen = set()
+        
+        # List of durations resulting from each state-action pair.  
+        # Dict keys are states; then each value is a multi-dimensional numpy array
+        self.returns = dict()
+    
+    def start_trial(self, state):
+        """
+        Return starting action at the start of the trial
+        """
+        
+        # Empty the list of seen state-action pairs
+        self.sa_seen = set()
+        
+        if self.starting_action is None:
+            action = random.choice(self.actions)
+        else:
+            action = self.starting_action
+        
+        # If Q[s] has not been seen before, create a table for it.
+        if not(state in self.Q):
+            self.Q[state] = np.empty(len(self.actions))
+            self.Q[state][:] = 0.0
+            self.visits[state] = 0
+            
+            # Create a numpy array to which we can append outbreak durations
+            self.returns[state] = [[] for a in self.actions]
+        
+        return action
+    
+    def step(self, s, action, reward, next_s, t, *args):
+        
+        # Check for terminal state
+        if (next_s == self._terminal_state):
+            
+            # Return a dummy action
+            next_a = 20
+            out_action = next_a
+            
+            # Loop through all state action pairs that we've seen, and append the return
+            # and update the Q dictionary.  
+            for s1, a1 in self.sa_seen:
+                
+                # Record the observed state
+                self.visits[s1] +=1
+                
+                # Duration of the outbreak is the variable t, append t to the returns[] list
+                self.returns[s1][a1].append(t)
+                
+                # Find the average of the durations for the state-action pair visited
+                self.Q[s1][a1] = np.mean(self.returns[s1][a1])
+            
+        else:
+            # Check that it's time to change the action
+            if t in self.control_switch_times:
+                
+                # Convert action to an index
+                ind = [i for i, v in enumerate(self.actions) if v == action][0]
+                
+                # Add the current state and action to the set of seen states
+                self.sa_seen.add((s, ind))
+                
+                # If Q[s] has not been seen before, create a table for it.
+                if not(s in self.Q):
+                    self.Q[s] = np.empty(len(self.actions))
+                    self.Q[s][:] = 0.0
+                    self.visits[s] = 0
+                    
+                    # Create a numpy array to which we can append outbreak durations
+                    self.returns[s] = [[] for a in self.actions]
+                
+                if not(next_s in self.Q):
+                    self.Q[next_s] = np.empty(len(self.actions))
+                    self.Q[next_s][:] = 0.0
+                    self.visits[next_s] = 0
+                    
+                    # Create a numpy array to which we can append outbreak durations
+                    self.returns[next_s] = [[] for a in self.actions]
+                
+                # Determine the list of probabilities of choosing an action
+                action_probabilities = utils.epsilon_soft(self.Q[s], self.actions, self.epsilon)
+                
+                next_a_idx = np.random.choice(len(self.actions), 1, p = action_probabilities)[0]
+                next_a = self.actions[next_a_idx]
+                
+            else:
+                next_a = action
+        
+        return next_a
+    
+    @property
+    def verbose(self):
+        "Should verbose output be turned on?"
+        return self._verbose
+    
+    @property
+    def epsilon(self):
+        "Epsilon parameter"
+        return self._epsilon
+    
+    @property
+    def actions(self):
+        "Actions"
+        return self._actions
+    
+    @property
+    def control_switch_times(self):
+        "List of times at which control can switch"
+        return self._control_switch_times
+    
+    @property
+    def starting_action(self):
+        "Starting action"
+        return self._starting_action
+
 
 class SarsaAgent(rli.Agent):
     """
@@ -131,6 +267,7 @@ class SarsaAgent(rli.Agent):
             The next action to be taken.  This is an action object, not an index.
             
         """
+        
         # Convert action to an index
         action = [i for i, v in enumerate(self.actions) if v == action][0]
         
@@ -602,6 +739,9 @@ def run():
     # Define list of actions and agent (without eligibilty traces)
     actions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
     
+    # Define a Monte Carlo agent
+    agent_mc = MCAgent(actions, epsilon = 0.1, verbose = True)
+    
     # Define a SARSA agent
     agent_wo = SarsaAgent(actions, epsilon = 0.1, alpha = 0.5, gamma = 1.0)
     
@@ -614,16 +754,20 @@ def run():
         lamb = 0.7, tracing = 'replace')
     
     # Create the simulation
+    #sim_mc = WindyGridlworldSim(agent_mc, wgw, np.inf, verbose = True)
     sim_wo = WindyGridlworldSim(agent_wo, wgw, np.inf)
     sim_re = WindyGridlworldSim(agent_re, wgw, np.inf)
     sim_ac = WindyGridlworldSim(agent_ac, wgw, np.inf)
     
     # Run the simulation for 170 episodes (compare with figure 6.11 of Sutton and Barton)
-    N = 170
+    N = 170 #N = 500 # use 500 with MCAgent
+    #sim_mc.trials(N, max_steps_per_trial = 300000)
     sim_wo.trials(N)
     sim_re.trials(N)
     sim_ac.trials(N)
-    durations_wo = np.insert(np.cumsum(sim_wo.durations), 0, 0)    
+    
+    #durations_mc = np.insert(np.cumsum(sim_mc.durations), 0, 0)
+    durations_wo = np.insert(np.cumsum(sim_wo.durations), 0, 0)
     durations_re = np.insert(np.cumsum(sim_re.durations), 0, 0)
     durations_ac = np.insert(np.cumsum(sim_ac.durations), 0, 0)
     
@@ -634,23 +778,23 @@ def run():
     # starting state to goal state
     opt = 15
     for i in np.arange(-2000, 8000, 500):
-        ax.plot([0+i, opt*N+i], [0, N], c = 'grey', linestyle = 'dotted', 
+        ax.plot([0+i, opt*N+i], [0, N], c = 'grey', linestyle = 'dotted',
             alpha = 0.7, label = "", linewidth = 0.75)
-    
+
     # Plot once again with label added so it's picked up by the legend command
-    ax.plot([0+i, opt*N+i], [0, N], c = 'grey', linestyle = 'dotted', 
+    ax.plot([0+i, opt*N+i], [0, N], c = 'grey', linestyle = 'dotted',
         alpha = 0.7, linewidth = 0.75, label = "Quickest path")
     
+    #ax.plot(durations_mc, range(len(durations_mc)), label = "MC control", linewidth = 2)
     ax.plot(durations_wo, range(len(durations_wo)), label = "Without", linewidth = 2)
-    ax.plot(durations_re, range(len(durations_wo)), label = "Replacing", linewidth = 2)
-    ax.plot(durations_ac, range(len(durations_wo)), label = "Accumulating", linewidth = 2)
+    ax.plot(durations_re, range(len(durations_re)), label = "Replacing", linewidth = 2)
+    ax.plot(durations_ac, range(len(durations_ac)), label = "Accumulating", linewidth = 2)
     
     ax.set_xlim([0, 8000]); ax.set_ylim([0, N])
     ax.set_xlabel("Time steps"); ax.set_ylabel("Episode number")
     
     ax.set_title("Comparison of learning rate with/without eligibility traces\n \
-        for the windy gridworld example of Sutton and Barto (ex 6.5)\n \
-            (Grey dotted lines are quickest path)")
+        for the windy gridworld example of Sutton and Barto (ex 6.5)")
     
     plt.legend(loc = "lower right")
     plt.savefig(join("graphics", "gridworld_comparison_seed_" + str(seed) + ".png"), dpi = 300)
