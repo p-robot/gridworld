@@ -10,4 +10,4 @@ python gridworld_tabular.py
 ```
 
 
-![./graphics/gridworld_comparison_seed_2018.png](./graphics/gridworld_comparison_seed_2018.png)
+![./graphics/gridworld_comparison_seed_2020.png](./graphics/gridworld_comparison_seed_2020.png)
