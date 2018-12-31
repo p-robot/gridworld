@@ -59,7 +59,7 @@ def epsilon_soft(Qs, actions, epsilon):
     """
     
     # Find the best action(s)
-    astar = (Qs == np.min(Qs))
+    astar = (Qs == np.max(Qs))
     
     # Probability of choosing the best action and non-best action
     p_astar = 1 - epsilon + epsilon/len(actions)
