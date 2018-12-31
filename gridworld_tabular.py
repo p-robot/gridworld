@@ -728,8 +728,7 @@ def run():
     run the trial for 8000 time steps (which should end in a similar position).
     """
     
-    #seed = np.random.randint(1000)
-    seed = 2018
+    seed = 2020
     print("Seed used:", seed)
     np.random.seed(seed)
     
@@ -751,7 +750,7 @@ def run():
     
     # # Define agent with eligibility traces (accumulating)
     agent_ac = SarsaAgentTraces(actions, epsilon = 0.1, alpha = 0.5, gamma = 1.0, \
-        lamb = 0.7, tracing = 'replace')
+        lamb = 0.7, tracing = 'accumulating')
     
     # Create the simulation
     #sim_mc = WindyGridlworldSim(agent_mc, wgw, np.inf, verbose = True)
@@ -760,7 +759,7 @@ def run():
     sim_ac = WindyGridlworldSim(agent_ac, wgw, np.inf)
     
     # Run the simulation for 170 episodes (compare with figure 6.11 of Sutton and Barton)
-    N = 170 #N = 500 # use 500 with MCAgent
+    N = 170 # use 500 with MCAgent
     #sim_mc.trials(N, max_steps_per_trial = 300000)
     sim_wo.trials(N)
     sim_re.trials(N)
