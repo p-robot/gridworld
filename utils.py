@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Module of utilities
 """
@@ -56,10 +56,12 @@ def epsilon_soft(Qs, actions, epsilon):
     
     See figure 5.6 of Sutton and Barto.  
     
+    Note: we find the minimum here cause the MCAgent (see gridworld_tabular.py) is using the 
+    duration of the episode as the reward.  
     """
     
     # Find the best action(s)
-    astar = (Qs == np.max(Qs))
+    astar = (Qs == np.min(Qs))
     
     # Probability of choosing the best action and non-best action
     p_astar = 1 - epsilon + epsilon/len(actions)
