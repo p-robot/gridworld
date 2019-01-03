@@ -174,9 +174,8 @@ class Simulation(object):
     Class representing the simulation in a reinforcement learning task.  
     
     This object manages the interaction between agent and environment, collects 
-    data, and manages the display, if any. Users will define the collect_data 
-    and the full2obs methods.  The start_trial, steps, and trials methods are 
-    not expected to be changed by users.  
+    data, and manages the display, if any. Users will define the collect_data method.  
+    The start_trial, steps, and trials methods are not expected to be changed by users.  
     
     Attributes
     ----------
@@ -206,9 +205,6 @@ class Simulation(object):
             
         trials: 
             run the simulation through a specified number of trials
-            
-        full2obs: 
-            translate from full state to observed state
             
         collect_data: 
             save any data at each step of the simulation
@@ -268,12 +264,9 @@ class Simulation(object):
         # Find the first state
         self.current_s = self.env.start_trial()
         
-        # Find the first action given the current state
-        observed_s = self.full2obs(self.current_s)
-        
         if self.verbose:
             print('starting agent')
-        self.current_a = self.agt.start_trial(observed_s)
+        self.current_a = self.agt.start_trial(self.current_s)
         
     def steps(self, num_steps):
         """
@@ -293,25 +286,21 @@ class Simulation(object):
             num_steps: number of time steps for which to run the simulation.  
         """
         
-        if (self.current_s == self.terminal_state):
+        if(self.current_s == self.terminal_state):
             self.start_trial()
         
         self.trial = 0
         for ts in range(num_steps):
             
             # Step the environment to find a new state
-            reward, next_s = self.env.step(self.current_s, \
-                self.current_a, t = self.timestep)
+            reward, next_s = self.env.step(self.current_s, self.current_a, t = self.timestep)
             
             # Save the data
             self.collect_data(self.current_s, self.current_a, reward, next_s)
             
             # Find the next action
-            observed_s = self.full2obs(self.current_s)
-            observed_next_s = self.full2obs(next_s)
-            next_a = self.agt.step(observed_s, self.current_a, reward, observed_next_s, \
-                            self.timestep, self.current_s)
-                
+            next_a = self.agt.step(self.current_s, self.current_a, reward, next_s, self.timestep)
+            
             # Check if next state is the terminal state.
             if(next_s != self.terminal_state):
                 self.current_a = next_a
@@ -355,19 +344,13 @@ class Simulation(object):
                 (self.current_s != self.terminal_state)):
                 
                 # Step the environment to find a new state
-                r, next_s = self.env.step(self.current_s, self.current_a, \
-                    t = self.timestep)
-                # this could have outputs of r, next_s, terminal (boolean)
+                # (this could have outputs of r, next_s, terminal (boolean))
+                r, next_s = self.env.step(self.current_s, self.current_a, t = self.timestep)
                 
                 # Save the data
                 self.collect_data(self.current_s, self.current_a, r, next_s)
                 
-                # Find the next action (from the observed state)
-                observed_s = self.full2obs(self.current_s)
-                observed_next_s = self.full2obs(next_s)
-                
-                next_a = self.agt.step(observed_s, self.current_a, \
-                                        r, observed_next_s, self.timestep, self.current_s)
+                next_a = self.agt.step(self.current_s, self.current_a, r, next_s, self.timestep)
                 
                 # Reset state and action
                 self.current_a = next_a
@@ -385,26 +368,6 @@ class Simulation(object):
             if (self.trial != (num_trials-1)):
                 self.start_trial()
     
-    def full2obs(self, s):
-        """Translate the full state of the environment to the observed state.
-        
-        In several reinforcement learning tasks the agent will not see the 
-        full state of the environment but a reduced form of the state, ie an 
-        observed state.  This function translates the full state of the 
-        environment (that is output by the environment step function) to the 
-        state that is observed by the agent (and input to the agent step 
-        function).  By default, the full state and observed state are the same
-        so the user need not change this function.  
-        
-        Args:
-            s: current full state of the environment
-            
-        Returns
-            The state observed by the agent (a function of the full state of 
-            the environment).  
-        """
-        return s
-    
     def collect_data(self, s, a, r, next_s):
         """Collect any data at each time step of the simulation.  
         
@@ -412,35 +375,19 @@ class Simulation(object):
         default this method does not save any data.  Users may customise what 
         data are saved by the simulation by modifying this function.  
         
-        Args:
-            s: current state of the environment
-            a: action taken in the current state
-            r: reward observed from taking action a in state s
-            next_s: resultant next state from taking action a in state s
+        Arguments
+        ---------
+        s
+            current state of the environment
+        a
+            action taken in the current state
+        r
+            reward observed from taking action a in state s
+        next_s
+            resultant next state from taking action a in state s
         """
-        
-        # save list of all action, states, rewards if desired
-        if self.full:
-            if self.timestep == 0:
-                self.outlist.append([[\
-                    copy.deepcopy(s), \
-                    copy.deepcopy(a), \
-                    copy.deepcopy(r), \
-                    copy.deepcopy(next_s)\
-                    ]])
-            else:
-                self.outlist[self.trial].append([\
-                    copy.deepcopy(s), \
-                    copy.deepcopy(a), \
-                    copy.deepcopy(r), \
-                    copy.deepcopy(next_s)\
-                    ])
-        
-        if (next_s.terminal):
-            culls = sum(s.n_cattle_original[next_s.status < 0])
-            self.total_culls.append(culls)
+        if(next_s == self.terminal_state):
             self.durations.append(self.timestep)
-            self.infected_premises.append(sum(s.status == -1))
     
     @property
     def terminal_state(self):
