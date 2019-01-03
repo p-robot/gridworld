@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Windy gridworld example (example 6.5) from Sutton and Barto (1998)
 using a dictionary to store the value function.  
@@ -667,50 +667,6 @@ class WindyGridlworldSim(rli.Simulation):
         
         self._terminal_state = "terminal"
         self.start_trial()
-    
-    def collect_data(self, current_s, current_a, reward, next_s):
-        
-        """
-        Save data at each step of the simulation.  
-        
-        This method saves the current state, action, reward and next state at
-        each time step of the simulation.  The list 'current_trial' keeps the 
-        progress of the current trial, and the list 'outlist' keeps the history
-        of all completed trials.  Once a terminal state is reached, the 
-        attribute current_trial is reset to an empty list and the duration of 
-        the completed trial is saved to the 'durations' attribute.  
-        Note that if one stops a simulation without getting to the terminal 
-        state then the history of all previously completed simulations will be
-        stored within the attribute outlist but the history of the current
-        simulation will be stored within the current_trial attribute.
-        
-        Parameters
-        ----------
-        current_s: 
-            The current state to be saved
-        current_a: 
-            The current action to be saved
-        reward: 
-            The current reward to be saved
-        next_s: 
-            The next state to be saved
-        """
-        
-        if (next_s == self.terminal_state):
-            self.durations.append(self.timestep)
-            
-            self.current_trial.append([[copy.deepcopy(current_s), \
-                            copy.copy(current_a), \
-                            copy.copy(reward), \
-                            copy.deepcopy(next_s)]])
-                            
-            self.outlist.append(self.current_trial)
-            self.current_trial = []
-        else:
-            self.current_trial.append([[copy.deepcopy(current_s), \
-                            copy.copy(current_a), \
-                            copy.copy(reward), \
-                            copy.deepcopy(next_s)]])
 
 
 def run():
@@ -739,7 +695,7 @@ def run():
     actions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
     
     # Define a Monte Carlo agent
-    agent_mc = MCAgent(actions, epsilon = 0.1, verbose = True)
+    agent_mc = MCAgent(actions, epsilon = 0.1)
     
     # Define a SARSA agent
     agent_wo = SarsaAgent(actions, epsilon = 0.1, alpha = 0.5, gamma = 1.0)
@@ -753,19 +709,19 @@ def run():
         lamb = 0.7, tracing = 'accumulating')
     
     # Create the simulation
-    #sim_mc = WindyGridlworldSim(agent_mc, wgw, np.inf, verbose = True)
+    sim_mc = WindyGridlworldSim(agent_mc, wgw, np.inf)
     sim_wo = WindyGridlworldSim(agent_wo, wgw, np.inf)
     sim_re = WindyGridlworldSim(agent_re, wgw, np.inf)
     sim_ac = WindyGridlworldSim(agent_ac, wgw, np.inf)
     
     # Run the simulation for 170 episodes (compare with figure 6.11 of Sutton and Barton)
-    N = 170 # use 500 with MCAgent
-    #sim_mc.trials(N, max_steps_per_trial = 300000)
+    N = 170 # use 500 with MCAgent (and expand the x-y plotting limits
+    sim_mc.trials(N, max_steps_per_trial = 300000)
     sim_wo.trials(N)
     sim_re.trials(N)
     sim_ac.trials(N)
     
-    #durations_mc = np.insert(np.cumsum(sim_mc.durations), 0, 0)
+    durations_mc = np.insert(np.cumsum(sim_mc.durations), 0, 0)
     durations_wo = np.insert(np.cumsum(sim_wo.durations), 0, 0)
     durations_re = np.insert(np.cumsum(sim_re.durations), 0, 0)
     durations_ac = np.insert(np.cumsum(sim_ac.durations), 0, 0)
@@ -784,7 +740,7 @@ def run():
     ax.plot([0+i, opt*N+i], [0, N], c = 'grey', linestyle = 'dotted',
         alpha = 0.7, linewidth = 0.75, label = "Quickest path")
     
-    #ax.plot(durations_mc, range(len(durations_mc)), label = "MC control", linewidth = 2)
+    ax.plot(durations_mc, range(len(durations_mc)), label = "MC control", linewidth = 2)
     ax.plot(durations_wo, range(len(durations_wo)), label = "Without", linewidth = 2)
     ax.plot(durations_re, range(len(durations_re)), label = "Replacing", linewidth = 2)
     ax.plot(durations_ac, range(len(durations_ac)), label = "Accumulating", linewidth = 2)
