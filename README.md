@@ -3,7 +3,7 @@
 Reproduction of windy gridworld example by Sutton and Barto (1998) using a range of SARSA agents that learn in different ways.  
 
 
-The figure below is a reproduction of the windy gridworld example of Sutton and Barto (example 6.5, p130 in [this book](http://incompleteideas.net/book/first/the-book.html)).  The figure (figure 6.11 in the linked book) can be reproduced in Python3 using the following command: 
+The figure below is a reproduction of the windy gridworld example of Sutton and Barto (example 6.5, p130 in [this book](http://incompleteideas.net/book/first/the-book.html)).  The figure (figure 6.11 in the linked book) can be reproduced in Python3 using the enclosed code.  
 
 
 **Prerequisites**
